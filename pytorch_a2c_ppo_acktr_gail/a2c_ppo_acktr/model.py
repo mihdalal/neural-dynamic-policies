@@ -2,11 +2,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from dnc.envs import *
-from a2c_ppo_acktr.distributions import Bernoulli, Categorical, DiagGaussian, DiagGaussianDist
-from a2c_ppo_acktr.utils import init
-from dmp.utils.dmp_layer import DMPIntegrator, DMPParameters
-from a2c_ppo_acktr import pytorch_util as ptu
+from pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.distributions import Bernoulli, Categorical, DiagGaussian, DiagGaussianDist
+from pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.utils import init
+from dmp_models.dmp.utils.dmp_layer import DMPIntegrator, DMPParameters
+from pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr import pytorch_util as ptu
 
 
 
@@ -404,8 +403,13 @@ class CNNBase(NNBase):
         return self.critic_linear(x), x, rnn_hxs
 
 class MLPBase(NNBase):
-    def __init__(self, num_inputs, recurrent=False, hidden_size=100):
+    def __init__(self, num_inputs, recurrent=False, hidden_size=100, hidden_activation='tanh'):
         super(MLPBase, self).__init__(recurrent, num_inputs, hidden_size)
+
+        if hidden_activation == 'tanh':
+            hidden_activation = nn.Tanh
+        elif hidden_activation == 'relu':
+            hidden_activation = nn.ReLU
 
         if recurrent:
             num_inputs = hidden_size
@@ -414,12 +418,12 @@ class MLPBase(NNBase):
                                constant_(x, 0), np.sqrt(2))
 
         self.actor = nn.Sequential(
-            init_(nn.Linear(num_inputs, hidden_size)), nn.Tanh(),
-            init_(nn.Linear(hidden_size, hidden_size)), nn.Tanh())
+            init_(nn.Linear(num_inputs, hidden_size)), hidden_activation(),
+            init_(nn.Linear(hidden_size, hidden_size)), hidden_activation())
 
         self.critic = nn.Sequential(
-            init_(nn.Linear(num_inputs, hidden_size)), nn.Tanh(),
-            init_(nn.Linear(hidden_size, hidden_size)), nn.Tanh(), )
+            init_(nn.Linear(num_inputs, hidden_size)), hidden_activation(),
+            init_(nn.Linear(hidden_size, hidden_size)), hidden_activation(), )
 
         self.critic_linear = init_(nn.Linear(hidden_size, 1))
 

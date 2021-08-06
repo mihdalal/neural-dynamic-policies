@@ -16,14 +16,13 @@ import torch.nn.functional as F
 import torch.optim as optim
 import tensorflow as tf
 
-from a2c_ppo_acktr import algo, utils
-from a2c_ppo_acktr.envs import make_vec_envs
-from a2c_ppo_acktr.model import Policy, DMPPolicy
-from a2c_ppo_acktr.storage import RolloutStorage, RolloutStorageDMP
-import dnc.envs as dnc_envs
-from ppo_train import train as train_ppo
-from dmp_train import train as train_dmp
-from a2c_ppo_acktr.algo.ppo import PPODMP
+from pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr import algo, utils
+from pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.envs import make_vec_envs
+from pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.model import Policy, DMPPolicy
+from pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.storage import RolloutStorage, RolloutStorageDMP
+from pytorch_a2c_ppo_acktr_gail.ppo_train import train as train_ppo
+from pytorch_a2c_ppo_acktr_gail.dmp_train import train as train_dmp
+from pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.algo.ppo import PPODMP
 
 
 def dmp_experiment(args):
@@ -40,11 +39,50 @@ def dmp_experiment(args):
 
     env_kwargs = dict(timestep=args.timestep, reward_delay=args.T)
 
-    envs = make_vec_envs(args.env_name, args.seed, args.num_processes,
-                         args.gamma, args.log_dir, device, False, env_kwargs=env_kwargs)
+    # envs = make_vec_envs(args.env_name, args.seed, args.num_processes,
+    #                      args.gamma, args.log_dir, device, False, env_kwargs=env_kwargs)
 
-    test_envs = make_vec_envs(args.env_name, args.seed + args.num_processes, args.num_processes,
-                         None, args.log_dir, device, False, env_kwargs=env_kwargs)
+    # test_envs = make_vec_envs(args.env_name, args.seed + args.num_processes, args.num_processes,
+    #                      None, args.log_dir, device, False, env_kwargs=env_kwargs)
+
+    env_kwargs=dict(
+            dense=False,
+            image_obs=False,
+            action_scale=1,
+            control_mode="end_effector",
+            frame_skip=40,
+            usage_kwargs=dict(
+                use_dm_backend=True,
+                use_raw_action_wrappers=False,
+                use_image_obs=False,
+                max_path_length=280,
+                unflatten_images=False,
+            ),
+            image_kwargs=dict(),
+        )
+    env_name = "kettle"
+    test_envs = make_vec_envs(
+        'kitchen',
+        env_name,
+        env_kwargs,
+        args.seed,
+        1,
+        args.gamma,
+        args.log_dir,
+        device,
+        False,
+    )
+    envs = make_vec_envs(
+        'kitchen',
+        env_name,
+        env_kwargs,
+        args.seed,
+        args.num_processes,
+        args.gamma,
+        args.log_dir,
+        device,
+        False,
+    )
 
     secondary_output = False
 
@@ -70,6 +108,11 @@ def dmp_experiment(args):
         state_index = np.arange(3)
         vel_index = []
         secondary_output = True
+
+    if "kitchen" in args.env_name:
+        state_index = np.arange(7)
+        vel_index = []
+
 
 
     hidden_sizes = [args.hidden_size, args.hidden_size]
@@ -137,17 +180,55 @@ def ppo_experiment(args):
     if "faucet" in args.env_name:
         secondary_output = True
 
+    env_kwargs=dict(
+            dense=False,
+            image_obs=False,
+            action_scale=1,
+            control_mode="end_effector",
+            frame_skip=40,
+            usage_kwargs=dict(
+                use_dm_backend=True,
+                use_raw_action_wrappers=False,
+                use_image_obs=False,
+                max_path_length=280,
+            ),
+            image_kwargs=dict(),
+        )
+    env_name = "kettle"
+    test_envs = make_vec_envs(
+        'kitchen',
+        env_name,
+        env_kwargs,
+        args.seed,
+        1,
+        args.gamma,
+        args.log_dir,
+        device,
+        False,
+    )
+    envs = make_vec_envs(
+        'kitchen',
+        env_name,
+        env_kwargs,
+        args.seed,
+        args.num_processes,
+        args.gamma,
+        args.log_dir,
+        device,
+        False,
+    )
 
-    envs = make_vec_envs(args.env_name, args.seed, args.num_processes,
-                             args.gamma, args.log_dir, device, False, env_kwargs=env_kwargs)
 
-    test_envs = make_vec_envs(args.env_name, args.seed + args.num_processes, args.num_processes,
-                             None, args.log_dir, device, False, env_kwargs=env_kwargs)
+    # envs = make_vec_envs(args.env_name, args.seed, args.num_processes,
+    #                          args.gamma, args.log_dir, device, False, env_kwargs=env_kwargs)
+
+    # test_envs = make_vec_envs(args.env_name, args.seed + args.num_processes, args.num_processes,
+    #                          None, args.log_dir, device, False, env_kwargs=env_kwargs)
 
     actor_critic = Policy(
             envs.observation_space.shape,
             envs.action_space,
-            base_kwargs={'recurrent': args.recurrent_policy})
+            base_kwargs={'recurrent': args.recurrent_policy, 'hidden_size':512, 'hidden_activation':'relu'})
     actor_critic.to(device)
 
     agent = algo.PPO(

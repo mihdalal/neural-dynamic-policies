@@ -13,11 +13,11 @@ import torch.nn.functional as F
 import torch.optim as optim
 import sys
 
-from a2c_ppo_acktr import algo, utils
+from pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr import algo, utils
 from arguments import get_args_ppo
-from a2c_ppo_acktr.envs import make_vec_envs
-from a2c_ppo_acktr.model import Policy
-from a2c_ppo_acktr.storage import RolloutStorage
+from pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.envs import make_vec_envs
+from pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.model import Policy
+from pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.storage import RolloutStorage
 
 
 import cv2

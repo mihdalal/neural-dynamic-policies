@@ -5,8 +5,8 @@ ENV_NAME=$1
 TYPE=$2
 EXP_ID=$3
 SEED=$4
-num_steps=150
-num_processes=14
+num_steps=280
+num_processes=10
 
 cleanup() {
     exit 1
@@ -30,6 +30,9 @@ if [ "$TYPE" = "dmp" ] || [ "$TYPE" = "ppo-multi" ] && [ "$ENV_NAME" = "soccer" 
     python ./main_rl.py --env-name=$ENV_NAME  --type $TYPE --seed $SEED --expID $EXP_ID --reward-delay 5 --T 5 --N 6 --a_z 15&
 fi
 if [ "$TYPE" = "dmp" ] || [ "$TYPE" = "ppo-multi" ] && [ "$ENV_NAME" = "faucet" ]; then
+    python ./main_rl.py --env-name=$ENV_NAME  --type $TYPE --seed $SEED --expID $EXP_ID --reward-delay 5 --T 5 --N 6 --a_z 5&
+fi
+if [ "$TYPE" = "dmp" ] || [ "$TYPE" = "ppo-multi" ] && [ "$ENV_NAME" = "kitchen" ]; then
     python ./main_rl.py --env-name=$ENV_NAME  --type $TYPE --seed $SEED --expID $EXP_ID --reward-delay 5 --T 5 --N 6 --a_z 5&
 fi
 if [ "$TYPE" = "ppo" ]; then
