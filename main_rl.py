@@ -49,7 +49,7 @@ def dmp_experiment(args):
             dense=False,
             image_obs=False,
             action_scale=1,
-            control_mode="end_effector",
+            control_mode="joint_velocity",
             frame_skip=40,
             usage_kwargs=dict(
                 use_dm_backend=True,
@@ -66,7 +66,7 @@ def dmp_experiment(args):
         env_name,
         env_kwargs,
         args.seed,
-        1,
+        5,
         args.gamma,
         args.log_dir,
         device,
@@ -110,7 +110,7 @@ def dmp_experiment(args):
         secondary_output = True
 
     if "kitchen" in args.env_name:
-        state_index = np.arange(7)
+        state_index = np.arange(9)
         vel_index = []
 
 
@@ -122,7 +122,7 @@ def dmp_experiment(args):
         envs.observation_space.shape,
         envs.action_space,
         base_kwargs={'recurrent': args.recurrent_policy,
-                    'hidden_size':args.hidden_size,
+                    'hidden_size': args.hidden_size,
                     'T':args.T,
                     'N':args.N,
                     'l':args.l,
@@ -132,7 +132,8 @@ def dmp_experiment(args):
                     'vel_index': vel_index,
                     'rbf':args.rbf,
                     'a_z': args.a_z,
-                    'secondary_output':secondary_output},
+                    'secondary_output':secondary_output,
+                    'hidden_activation': F.relu},
         )
     actor_critic.to(device)
 
@@ -184,7 +185,7 @@ def ppo_experiment(args):
             dense=False,
             image_obs=False,
             action_scale=1,
-            control_mode="end_effector",
+            control_mode="joint_velocity",
             frame_skip=40,
             usage_kwargs=dict(
                 use_dm_backend=True,
@@ -200,7 +201,7 @@ def ppo_experiment(args):
         env_name,
         env_kwargs,
         args.seed,
-        1,
+        5,
         args.gamma,
         args.log_dir,
         device,
@@ -228,7 +229,7 @@ def ppo_experiment(args):
     actor_critic = Policy(
             envs.observation_space.shape,
             envs.action_space,
-            base_kwargs={'recurrent': args.recurrent_policy, 'hidden_size':512, 'hidden_activation':'relu'})
+            base_kwargs={'recurrent': args.recurrent_policy, 'hidden_size':args.hidden_size, 'hidden_activation':'relu'})
     actor_critic.to(device)
 
     agent = algo.PPO(
