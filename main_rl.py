@@ -49,8 +49,9 @@ def dmp_experiment(args):
             dense=False,
             image_obs=False,
             action_scale=1,
-            control_mode="joint_velocity",
+            control_mode="end_effector",
             frame_skip=40,
+            target_mode=True,
             usage_kwargs=dict(
                 use_dm_backend=True,
                 use_raw_action_wrappers=False,
@@ -67,7 +68,7 @@ def dmp_experiment(args):
         env_kwargs,
         args.seed,
         5,
-        args.gamma,
+        None,
         args.log_dir,
         device,
         False,
@@ -110,7 +111,7 @@ def dmp_experiment(args):
         secondary_output = True
 
     if "kitchen" in args.env_name:
-        state_index = np.arange(9)
+        state_index = np.arange(7)
         vel_index = []
 
 
@@ -185,8 +186,9 @@ def ppo_experiment(args):
             dense=False,
             image_obs=False,
             action_scale=1,
-            control_mode="joint_velocity",
+            control_mode="end_effector",
             frame_skip=40,
+            target_mode=False,
             usage_kwargs=dict(
                 use_dm_backend=True,
                 use_raw_action_wrappers=False,
@@ -202,7 +204,7 @@ def ppo_experiment(args):
         env_kwargs,
         args.seed,
         5,
-        args.gamma,
+        None,
         args.log_dir,
         device,
         False,
