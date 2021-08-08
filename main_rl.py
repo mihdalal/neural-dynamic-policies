@@ -111,8 +111,9 @@ def dmp_experiment(args):
         secondary_output = True
 
     if "kitchen" in args.env_name:
-        state_index = np.arange(7)
+        state_index = np.arange(6)
         vel_index = []
+        secondary_output = True
 
 
 
@@ -134,7 +135,7 @@ def dmp_experiment(args):
                     'rbf':args.rbf,
                     'a_z': args.a_z,
                     'secondary_output':secondary_output,
-                    'hidden_activation': F.relu},
+                    'hidden_activation': F.tanh},
         )
     actor_critic.to(device)
 
@@ -266,8 +267,9 @@ if __name__ == '__main__':
     args.log_dir = args.save_dir + '/tmp/'
     args.num_env_steps = 25000 * args.num_processes * args.num_steps
 
+    args.save_dir += '_T_' + str(args.T) + '_N_' + str(args.N) + '_rd_' + str(args.reward_delay)+ '_az_' + str(args.a_z) + '_cp_' + str(args.clip_param) + '_hs_' + str(args.hidden_size)
 
-    os.makedirs(args.save_dir)
+    os.makedirs(args.save_dir, exist_ok=True)
 
     if args.type == 'dmp':
             env_name = args.env_name
