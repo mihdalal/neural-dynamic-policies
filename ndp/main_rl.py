@@ -1,6 +1,6 @@
 
 import numpy as np
-from arguments import *
+from ndp.arguments import *
 import copy
 import glob
 import os
@@ -16,146 +16,80 @@ import torch.nn.functional as F
 import torch.optim as optim
 import tensorflow as tf
 
-from pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr import algo, utils
-from pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.envs import make_vec_envs
-from pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.model import Policy, DMPPolicy
-from pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.storage import RolloutStorage, RolloutStorageDMP
-from pytorch_a2c_ppo_acktr_gail.ppo_train import train as train_ppo
-from pytorch_a2c_ppo_acktr_gail.dmp_train import train as train_dmp
-from pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.algo.ppo import PPODMP
+from ndp.pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr import algo, utils
+from ndp.pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.envs import make_vec_envs
+from ndp.pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.model import Policy, DMPPolicy
+from ndp.pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.storage import RolloutStorage, RolloutStorageDMP
+from ndp.pytorch_a2c_ppo_acktr_gail.ppo_train import train as train_ppo
+from ndp.pytorch_a2c_ppo_acktr_gail.dmp_train import train as train_dmp
+from ndp.pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.algo.ppo import PPODMP
 
+from rlkit.core import logger as rlkit_logger
+from rlkit.core.eval_util import create_stats_ordered_dict
 
-def dmp_experiment(args):
-    args.l = args.num_int_steps // args.T + 1
-    torch.manual_seed(args.seed)
-    torch.cuda.manual_seed_all(args.seed)
+def dmp_experiment(variant):
+    env_name = variant["env_name"]
+    env_suite = variant["env_suite"]
+    env_kwargs = variant["env_kwargs"]
+    seed = variant["seed"]
 
-    if args.cuda and torch.cuda.is_available() and args.cuda_deterministic:
-        torch.backends.cudnn.benchmark = False
-        torch.backends.cudnn.deterministic = True
+    log_dir = os.path.expanduser(rlkit_logger.get_snapshot_dir())
+    utils.cleanup_log_dir(log_dir)
+
+    device = torch.device("cpu")
+
+    torch.backends.cudnn.benchmark = True
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
 
     torch.set_num_threads(1)
-    device = torch.device("cuda:0" if args.cuda else "cpu")
 
-    env_kwargs = dict(timestep=args.timestep, reward_delay=args.T)
-
-    # envs = make_vec_envs(args.env_name, args.seed, args.num_processes,
-    #                      args.gamma, args.log_dir, device, False, env_kwargs=env_kwargs)
-
-    # test_envs = make_vec_envs(args.env_name, args.seed + args.num_processes, args.num_processes,
-    #                      None, args.log_dir, device, False, env_kwargs=env_kwargs)
-
-    env_kwargs=dict(
-            dense=False,
-            image_obs=False,
-            action_scale=1,
-            control_mode="end_effector",
-            frame_skip=40,
-            target_mode=True,
-            usage_kwargs=dict(
-                use_dm_backend=True,
-                use_raw_action_wrappers=False,
-                use_image_obs=False,
-                max_path_length=280,
-                unflatten_images=False,
-            ),
-            image_kwargs=dict(),
-        )
-    env_name = "kettle"
-    test_envs = make_vec_envs(
-        'kitchen',
+    envs = make_vec_envs(
+        env_suite,
         env_name,
         env_kwargs,
-        args.seed,
+        seed,
+        variant["num_processes"],
+        variant["rollout_kwargs"]["gamma"],
+        rlkit_logger.get_snapshot_dir(),
+        device,
+        False,
+    )
+
+    test_envs = make_vec_envs(
+        env_suite,
+        env_name,
+        env_kwargs,
+        seed,
         5,
         None,
-        args.log_dir,
-        device,
-        False,
-    )
-    envs = make_vec_envs(
-        'kitchen',
-        env_name,
-        env_kwargs,
-        args.seed,
-        args.num_processes,
-        args.gamma,
-        args.log_dir,
+        rlkit_logger.get_snapshot_dir(),
         device,
         False,
     )
 
-    secondary_output = False
-
-    if "throw" in args.env_name:
-        state_index = np.arange(9)
-        vel_index = np.arange(18, 27)
-
-    if "pick" in args.env_name:
-        state_index = np.arange(9)
-        vel_index = np.arange(16, 25)
-
-    if "push" in args.env_name:
-        state_index = np.arange(3)
-        vel_index = []
-        env_kwargs['params'] = 'random_goal_unconstrained'
-
-    if "soccer" in args.env_name:
-        state_index = np.arange(3)
-        vel_index = []
-        env_kwargs['params'] = 'random_goal_unconstrained'
-
-    if "faucet" in args.env_name:
-        state_index = np.arange(3)
-        vel_index = []
-        secondary_output = True
-
-    if "kitchen" in args.env_name:
-        state_index = np.arange(6)
-        vel_index = []
-        secondary_output = True
-
-
-
-    hidden_sizes = [args.hidden_size, args.hidden_size]
-
+    dmp_kwargs = variant['dmp_kwargs']
+    dmp_kwargs['l'] = variant['num_int_steps'] // dmp_kwargs['T'] + 1
 
     actor_critic = DMPPolicy(
         envs.observation_space.shape,
         envs.action_space,
-        base_kwargs={'recurrent': args.recurrent_policy,
-                    'hidden_size': args.hidden_size,
-                    'T':args.T,
-                    'N':args.N,
-                    'l':args.l,
-                    'goal_type':args.goal_type,
-                    'hidden_sizes':hidden_sizes,
-                    'state_index':state_index,
-                    'vel_index': vel_index,
-                    'rbf':args.rbf,
-                    'a_z': args.a_z,
-                    'secondary_output':secondary_output,
-                    'hidden_activation': F.tanh},
+        base_kwargs=dmp_kwargs,
         )
     actor_critic.to(device)
 
-    agent = PPODMP(
-        actor_critic,
-        args.clip_param,
-        args.ppo_epoch,
-        args.num_mini_batch,
-        args.value_loss_coef,
-        args.entropy_coef,
-        lr=args.lr,
-        eps=args.eps,
-        max_grad_norm=args.max_grad_norm)
+    agent = PPODMP(actor_critic, **variant["algorithm_kwargs"])
 
+    rollouts = RolloutStorageDMP(
+        variant["num_steps"],
+        variant["num_processes"],
+        envs.observation_space.shape,
+        envs.action_space,
+        actor_critic.recurrent_hidden_state_size,
+        T=dmp_kwargs['T'],
+    )
 
-    rollouts = RolloutStorageDMP(args.num_steps, args.num_processes,
-                              envs.observation_space.shape, envs.action_space,
-                              actor_critic.recurrent_hidden_state_size, args.T)
-
-    train_dmp(actor_critic, agent, rollouts, envs, test_envs, args)
+    train_dmp(actor_critic, agent, rollouts, envs, test_envs, device, variant)
 
 
 def ppo_experiment(args):

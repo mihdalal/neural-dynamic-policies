@@ -4,7 +4,7 @@ import os
 import torch
 import torch.nn as nn
 
-from pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.envs import VecNormalize
+from ndp.pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.envs import VecNormalize
 
 
 # Get a render function

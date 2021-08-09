@@ -14,10 +14,10 @@ import torch.nn.functional as F
 import torch.optim as optim
 import tensorflow as tf
 
-from pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr import algo, utils
-from pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.envs import make_vec_envs
-from pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.model import Policy
-from pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.storage import RolloutStorage
+from ndp.pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr import algo, utils
+from ndp.pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.envs import make_vec_envs
+from ndp.pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.model import Policy
+from ndp.pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.storage import RolloutStorage
 import torch.distributions as td
 
 def train(actor_critic, agent, rollouts, envs, test_envs, args):

@@ -2,10 +2,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.distributions import Bernoulli, Categorical, DiagGaussian, DiagGaussianDist
-from pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.utils import init
-from dmp_models.dmp.utils.dmp_layer import DMPIntegrator, DMPParameters
-from pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr import pytorch_util as ptu
+from ndp.pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.distributions import Bernoulli, Categorical, DiagGaussian, DiagGaussianDist
+from ndp.pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr.utils import init
+from ndp.dmp_models.dmp.utils.dmp_layer import DMPIntegrator, DMPParameters
+from ndp.pytorch_a2c_ppo_acktr_gail.a2c_ppo_acktr import pytorch_util as ptu
 
 
 
